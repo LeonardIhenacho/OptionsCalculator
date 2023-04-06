@@ -1,18 +1,25 @@
 from typing import Optional
 from sqlmodel import Field, SQLModel
-from pydantic import condecimal
+from pydantic import condecimal, validator
+from datetime import datetime
 
 
 class OptionsBase(SQLModel):
     """Base Datamodel representation for Options"""
     name: str = Field(index=True)
     strike: condecimal(max_digits=7, decimal_places=3)
-    maturity: condecimal(max_digits=6, decimal_places=3)
+    time_to_maturity: condecimal(max_digits=6, decimal_places=3)
     risk_free_rate: condecimal(max_digits=6, decimal_places=3)
     volatility: condecimal(max_digits=6, decimal_places=3)
     future_price: condecimal(max_digits=7, decimal_places=3)
     option_type: str
-    black76_price: Optional[condecimal(max_digits=7, decimal_places=3)]
+    black76_price: Optional[condecimal(max_digits=7, decimal_places=3)] = None
+
+    @validator('option_type')
+    def type_must_be_call_or_put(cls, value):
+        if value.lower() not in {'call', 'put'}:
+            raise ValueError('Option type must be either "call" or "put"')
+        return value.lower()
 
 
 class Option(OptionsBase, table=True):  # This is the table model
@@ -30,9 +37,12 @@ class OptionRead(OptionsBase):
 class OptionUpdate(SQLModel):
     name: Optional[str] = None
     strike: Optional[condecimal(max_digits=7, decimal_places=3)] = None
-    maturity: Optional[condecimal(max_digits=7, decimal_places=3)] = None
+    time_to_maturity: Optional[condecimal(max_digits=6, decimal_places=3)] = None
     risk_free_rate: Optional[condecimal(max_digits=7, decimal_places=3)] = None
     volatility: Optional[condecimal(max_digits=7, decimal_places=3)] = None
     future_price: Optional[condecimal(max_digits=7, decimal_places=3)] = None
     option_type: Optional[str] = None
-    black76_price: Optional[condecimal(max_digits=7, decimal_places=3)]
+    black76_price: Optional[condecimal(max_digits=7, decimal_places=3)] = None
+
+    class config:
+        orm_mode = True
